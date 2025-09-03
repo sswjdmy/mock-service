@@ -1,9 +1,9 @@
 package com.vitalgateway.grpcmock.endpoint;
 
 
-import ch.qos.logback.core.testUtil.RandomUtil;
 import com.ddm.grpc.mt5listener.model.Mt5ListenerModel;
 import com.ddm.grpc.mt5listener.publisher.PublisherProto;
+import com.google.common.collect.Lists;
 import com.vitalgateway.grpcmock.grpc.mt5.Mt5TickPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
 
 @Slf4j
 @RestController
@@ -25,45 +24,48 @@ public class TickEndpoint {
 
 
     @GetMapping("/send")
-    public String send(int groupCount, int groupSize) {
+    public String send(int perSymbolCount) {
 
         List<PublisherProto.PushListTickResp> tickResps = new ArrayList<>();
 
-        log.info("groupCount: {}, groupSize: {}", groupCount, groupSize);
+        log.info("perSymbolCount: {}", perSymbolCount);
+
+        List<Mt5ListenerModel.MTTickShort> ticks = new ArrayList<>();
         // create tick
-        for (int i = 0; i < groupCount; i++) {
-            PublisherProto.PushListTickResp.Builder builder = PublisherProto.PushListTickResp.newBuilder();
+        for (int i = 0; i < perSymbolCount; i++) {
 
-            long random = System.currentTimeMillis() % 100000;
+            for (int j = 0; j < 7000; j++) {
 
-            for (int j = 0; j < groupSize; j++) {
-                int index = i * groupSize + j;
-                builder.addTicks(Mt5ListenerModel.MTTickShort.newBuilder().setSymbol("HK50" + index)
+                PublisherProto.PushListTickResp.Builder builder = PublisherProto.PushListTickResp.newBuilder();
+
+                long random = System.currentTimeMillis() % 100000;
+
+                    int index = i * 7000 + j;
+
+                Mt5ListenerModel.MTTickShort tickShort = Mt5ListenerModel.MTTickShort.newBuilder().setSymbol("Symbol-" + j)
                         .setBid(random + index)
                         .setAsk(random + index)
                         .setLast(random + index)
                         .setVolume(random + index)
                         .setDatetime(System.currentTimeMillis() / 1000)
                         .setDatetimeMsc(System.currentTimeMillis())
-                        .build());
+                        .build();
+
+                ticks.add(tickShort);
+                builder.addTicks(tickShort);
+                PublisherProto.PushListTickResp tickResp = builder.build();
+                tickResps.add(tickResp);
             }
-            PublisherProto.PushListTickResp tickResp = builder.build();
-            tickResps.add(tickResp);
         }
 
-        log.info("create tick done");
+        List<List<Mt5ListenerModel.MTTickShort>> partitioned = Lists.partition(ticks, ticks.size() / 10);
 
-        tickResps.forEach(mt5TickPublisher::onTick);
+        partitioned.stream().map(list -> {
+            PublisherProto.PushListTickResp.Builder builder = PublisherProto.PushListTickResp.newBuilder();
+            builder.addAllTicks(list);
+            return builder.build();
+        }).forEach(mt5TickPublisher::onTickList);
 
-//        try (var exec = Executors.newVirtualThreadPerTaskExecutor();){
-//            tickResps.forEach(t -> exec.submit(() -> {
-//                mt5TickPublisher.onTick(t);
-//            }));
-//        }
-
-
-        log.info("send tick done");
-        // 多线程发送
         return "ok";
     }
 }
