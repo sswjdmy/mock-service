@@ -33,15 +33,9 @@ public class TickEndpoint {
         List<Mt5ListenerModel.MTTickShort> ticks = new ArrayList<>();
         // create tick
         for (int i = 0; i < perSymbolCount; i++) {
-
             for (int j = 0; j < 7000; j++) {
-
-                PublisherProto.PushListTickResp.Builder builder = PublisherProto.PushListTickResp.newBuilder();
-
                 long random = System.currentTimeMillis() % 100000;
-
-                    int index = i * 7000 + j;
-
+                int index = i * 7000 + j;
                 Mt5ListenerModel.MTTickShort tickShort = Mt5ListenerModel.MTTickShort.newBuilder().setSymbol("Symbol-" + j)
                         .setBid(random + index)
                         .setAsk(random + index)
@@ -50,21 +44,21 @@ public class TickEndpoint {
                         .setDatetime(System.currentTimeMillis() / 1000)
                         .setDatetimeMsc(System.currentTimeMillis())
                         .build();
-
                 ticks.add(tickShort);
-                builder.addTicks(tickShort);
-                PublisherProto.PushListTickResp tickResp = builder.build();
-                tickResps.add(tickResp);
             }
         }
 
-        List<List<Mt5ListenerModel.MTTickShort>> partitioned = Lists.partition(ticks, ticks.size() / 10);
+        List<List<Mt5ListenerModel.MTTickShort>> partitioned = Lists.partition(ticks,10);
 
-        partitioned.stream().map(list -> {
+
+        List<PublisherProto.PushListTickResp> listTickResps = partitioned.stream().map(list -> {
             PublisherProto.PushListTickResp.Builder builder = PublisherProto.PushListTickResp.newBuilder();
             builder.addAllTicks(list);
             return builder.build();
-        }).forEach(mt5TickPublisher::onTickList);
+        }).toList();
+        log.info("listTickResps created. size: {}", listTickResps.size());
+
+        listTickResps.forEach(mt5TickPublisher::onTickList);
 
         return "ok";
     }

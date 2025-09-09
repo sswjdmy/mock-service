@@ -76,21 +76,23 @@ public class Mt5TickPublisher extends TickPublisherGrpc.TickPublisherImplBase {
                         .setSymbol("HEARTBEAT")
                         .build())
                 .build();
-        CompletableFuture.runAsync(() -> {
-            while (true) {
-                try {
-                    TimeUnit.SECONDS.sleep(25);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+        try (var exec = Executors.newVirtualThreadPerTaskExecutor()) {
+            exec.execute(()->{
+                while (true) {
+                    try {
+                        TimeUnit.SECONDS.sleep(30);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    if (((ServerCallStreamObserver<PublisherProto.PushListTickResp>) observer).isCancelled()) {
+                        log.info("pushHeartbeat cancelled");
+                        break;
+                    }
+                    log.info("pushHeartbeat");
+                    safeOnNext(observer, response);
                 }
-                if (((ServerCallStreamObserver<PublisherProto.PushListTickResp>) observer).isCancelled()) {
-                    log.info("pushHeartbeat cancelled");
-                    break;
-                }
-                log.info("pushHeartbeat");
-                safeOnNext(observer, response);
-            }
-        }, ExecutorUtil.DEFAULT_EXECUTOR);
+            });
+        }
     }
 
     private void safeOnNext(StreamObserver<PublisherProto.PushListTickResp> observer, PublisherProto.PushListTickResp response) {
