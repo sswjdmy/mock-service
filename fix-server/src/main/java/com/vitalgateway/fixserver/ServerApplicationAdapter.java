@@ -36,7 +36,7 @@ public class ServerApplicationAdapter  implements Application  {
 
     @Override
     public void fromApp(Message message, SessionID sessionId) {
-//        log.info("fromApp: Message={}, SessionId={}", message, sessionId);
+        log.info("fromApp: Message={}, SessionId={}", message, sessionId);
 //        dobiz( message, sessionId);
         fromAppMessageProcessor.process(message, sessionId);
     }

@@ -1,8 +1,5 @@
 package com.vitalgateway.grpcmock.grpc.st;
 
-import com.ddm.grpc.common.consts.CommonRetCode;
-import com.ddm.grpc.mt5listener.enums.Mt5ListenerEnums;
-import com.ddm.grpc.mt5listener.model.Mt5ListenerModel;
 import com.ddm.grpc.mt5listener.publisher.PublisherProto;
 import com.ddm.grpc.securityTradePlatform.enums.SecurityTradePlatformEnums;
 import com.ddm.grpc.securityTradePlatform.model.SecurityTradePlatformModel;
@@ -14,7 +11,7 @@ import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import net.devh.boot.grpc.server.service.GrpcService;
 
 import java.util.List;
 import java.util.Map;
@@ -27,9 +24,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 
-
 @Slf4j
-@Service
+@GrpcService
 public class StOrderPublisher extends OrderServiceGrpc.OrderServiceImplBase {
 
     @Getter
@@ -46,7 +42,7 @@ public class StOrderPublisher extends OrderServiceGrpc.OrderServiceImplBase {
         pushOrderMap.put(current, (ServerCallStreamObserver<SecurityTradePlatformProto.PushOrderResp>) responseObserver);
 
         pushHeartbeat(responseObserver);
-        pushOrder(responseObserver, 500);
+        pushOrder(responseObserver, 20);
 
         current.addListener(context -> {
             log.info("context cancelled: {}", context.isCancelled());
@@ -65,27 +61,25 @@ public class StOrderPublisher extends OrderServiceGrpc.OrderServiceImplBase {
                 for (int i = 0; i < count; i++) {
                     SecurityTradePlatformProto.PushOrderResp response = SecurityTradePlatformProto.PushOrderResp.newBuilder()
                             .setData(SecurityTradePlatformModel.OrderWithDeal.newBuilder()
-                                    .setOrder("31145368" + i)
+                                    .setOrder(String.valueOf(System.currentTimeMillis() + i))
                                     .setAccount(150000662)
                                     .setSymbol("HK50")
-                                    .setState(SecurityTradePlatformEnums.OrderState.ORDER_STATE_FILLED)
-                                    .setReason(SecurityTradePlatformEnums.OrderReason.ORDER_REASON_DEALER)
-                                    .setType(SecurityTradePlatformEnums.OrderType.ORDER_TYPE_BUY_LIMIT)
-                                    .setTypeFill(SecurityTradePlatformEnums.FillType.ORDER_FILL_RETURN)
-                                    .setTypeTime(SecurityTradePlatformEnums.TimeType.ORDER_TIME_GTC)
-                                    .setReason(SecurityTradePlatformEnums.OrderReason.ORDER_REASON_CLIENT)
+                                    .setState(SecurityTradePlatformEnums.OrderState.forNumber(i % 14 ))
+                                    .setType(SecurityTradePlatformEnums.OrderType.ORDER_TYPE_LIMIT)
+                                    .setSide(SecurityTradePlatformEnums.OrderSide.ORDER_SIDE_BUY)
+                                    .setTif(SecurityTradePlatformEnums.TimeInForce.ORDER_TIF_IOC)
                                     .setOrderQty(100000000)
                                     .setCumQty(100000000)
                                     .setLeavesQty(20000)
                                     .setLastQty(20735.24)
                                     .setOrderPrice(0.1287049323591228)
-                                    .setStopPx(0.1287049323591228)
-                                    .setLastPx(0.1287049323591228)
-                                    .setAvgPx(0.1287049323591228)
-                                    .setPositionId("")
-                                    .setTimeSetup(System.currentTimeMillis())
-                                    .setTimeExpiration(0)
-                                    .setTimeDone(System.currentTimeMillis())
+                                    .setStopPrice(0.1287049323591228)
+                                    .setLastPrice(0.1287049323591228)
+                                    .setAvgPrice(0.1287049323591228)
+                                    .setPosition("")
+                                    .setCreateTime(System.currentTimeMillis())
+                                    .setExpirationTime(0)
+                                    .setUpdateTime(System.currentTimeMillis())
                                     .build())
                             .build();
                     safeOnNext(observer, response);
@@ -151,4 +145,19 @@ public class StOrderPublisher extends OrderServiceGrpc.OrderServiceImplBase {
     }
 
 
+    @Override
+    public void getOrder(SecurityTradePlatformProto.GetOrderReq request, StreamObserver<SecurityTradePlatformProto.GetOrderResp> responseObserver) {
+        String order = request.getOrder();
+
+        // todo
+        SecurityTradePlatformProto.GetOrderResp eurusd = SecurityTradePlatformProto.GetOrderResp.newBuilder().setData(
+                SecurityTradePlatformModel.OrderWithDeal.newBuilder()
+                        .setOrder(order)
+                        .setSymbol("EURUSD")
+                        .build()
+        ).build();
+
+        responseObserver.onNext(eurusd);
+        responseObserver.onCompleted();
+    }
 }
