@@ -15,9 +15,17 @@ import quickfix.field.MarketDepth;
 import quickfix.field.NoMDEntryTypes;
 import quickfix.field.NoRelatedSym;
 import quickfix.field.SecurityID;
+import quickfix.field.SecurityListRequestType;
+import quickfix.field.SecurityReqID;
+import quickfix.field.SecurityStatusReqID;
 import quickfix.field.SubscriptionRequestType;
 import quickfix.field.Symbol;
+import quickfix.field.TradSesMethod;
+import quickfix.field.TradSesReqID;
 import quickfix.fix50sp2.MarketDataRequest;
+import quickfix.fix50sp2.SecurityListRequest;
+import quickfix.fix50sp2.SecurityStatusRequest;
+import quickfix.fix50sp2.TradingSessionStatusRequest;
 
 @Slf4j
 @RestController
@@ -63,4 +71,41 @@ public class MarketDataEndpoint {
         }
         return "ok";
     }
+
+    @SneakyThrows
+    @GetMapping("/tradeSession")
+    public String tradeSession() {
+        SessionID sessionID = new SessionID(SessionId);
+        TradingSessionStatusRequest request = new TradingSessionStatusRequest();
+        request.setString(TradSesReqID.FIELD, "trade-session-1");
+        request.setChar(SubscriptionRequestType.FIELD, '0');
+        Session.sendToTarget(request, sessionID);
+        return "ok";
+    }
+
+
+    @SneakyThrows
+    @GetMapping("/securityStatus")
+    public String securityStatus() {
+        SessionID sessionID = new SessionID(SessionId);
+        SecurityStatusRequest request = new SecurityStatusRequest();
+        request.setString(SecurityStatusReqID.FIELD, "123");
+        request.setString(SecurityID.FIELD, "AAPL");
+        request.setString(Symbol.FIELD, "AAPL");
+        request.setChar(SubscriptionRequestType.FIELD, '1');
+        Session.sendToTarget(request, sessionID);
+        return "ok";
+    }
+
+    @SneakyThrows
+    @GetMapping("/securityList")
+    public String securityList() {
+        SessionID sessionID = new SessionID(SessionId);
+        SecurityListRequest request = new SecurityListRequest();
+        request.setString(SecurityReqID.FIELD, "123");
+        request.setInt(SecurityListRequestType.FIELD, 4);
+        Session.sendToTarget(request, sessionID);
+        return "ok";
+    }
+
 }

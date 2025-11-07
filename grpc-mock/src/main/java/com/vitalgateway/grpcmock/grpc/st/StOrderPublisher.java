@@ -38,11 +38,16 @@ public class StOrderPublisher extends OrderServiceGrpc.OrderServiceImplBase {
 
     @Override
     public void pushOrder(SecurityTradePlatformProto.PushOrderReq request, StreamObserver<SecurityTradePlatformProto.PushOrderResp> responseObserver) {
+        long threadId = Thread.currentThread().getId();
+
+
+        log.info("pushOrder connected, threadId: {}", threadId);
+
         Context current = Context.current();
         pushOrderMap.put(current, (ServerCallStreamObserver<SecurityTradePlatformProto.PushOrderResp>) responseObserver);
 
         pushHeartbeat(responseObserver);
-        pushOrder(responseObserver, 20);
+        pushOrder(responseObserver, 1);
 
         current.addListener(context -> {
             log.info("context cancelled: {}", context.isCancelled());
@@ -62,7 +67,7 @@ public class StOrderPublisher extends OrderServiceGrpc.OrderServiceImplBase {
                     SecurityTradePlatformProto.PushOrderResp response = SecurityTradePlatformProto.PushOrderResp.newBuilder()
                             .setData(SecurityTradePlatformModel.OrderWithDeal.newBuilder()
                                     .setOrder(String.valueOf(System.currentTimeMillis() + i))
-                                    .setAccount(150000662)
+                                    .setAccountId("150000662")
                                     .setSymbol("HK50")
                                     .setState(SecurityTradePlatformEnums.OrderState.forNumber(i % 14 ))
                                     .setType(SecurityTradePlatformEnums.OrderType.ORDER_TYPE_LIMIT)
