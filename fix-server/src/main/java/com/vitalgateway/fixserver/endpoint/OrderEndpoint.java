@@ -40,11 +40,28 @@ public class OrderEndpoint {
 
 
     /**
+     * {@snippet lang = "JSON":
+     * {
+     *   "ordType": "1",
+     *   "side": "1",
+     *   "timeInForce": "0",
+     *   "expireDate": "20251118",
+     *   "clOrdID": "clord11152",
+     *   "origClOrdID": "orig2222",
+     *   "account": "3",
+     *   "transactTime": "20251118-04:22:28.109",
+     *   "price": "1",
+     *   "stopPx": null,
+     *   "memo": "",
+     *   "orderQty": "1",
+     *   "symbol": "BABA",
+     *   "securityExchange": "BA"
+     * }
+     *}
      *
      * @param orderRequest
      * @return
      */
-
     @SneakyThrows
     @PostMapping("/create")
     public String createOrder(@RequestBody CreateOrderRequest orderRequest) {
@@ -69,6 +86,30 @@ public class OrderEndpoint {
         return "ok";
     }
 
+    /**
+     * {@snippet lang = "JSON":
+     * {
+     *   "ordType": "2",
+     *   "side": "1",
+     *   "timeInForce": "0",
+     *   "expireDate": "20251118",
+     *   "clOrdID": "RRclord11155",
+     *   "origClOrdID": "orig2222",
+     *   "orderID": "Rclord11155",
+     *   "account": "3",
+     *   "transactTime": "20251118-04:22:28.109",
+     *   "price": "2",
+     *   "stopPx": null,
+     *   "memo": "",
+     *   "orderQty": "1",
+     *   "symbol": "BABA",
+     *   "securityExchange": "BA"
+     * }
+     *}
+     *
+     * @param orderRequest
+     * @return
+     */
     @SneakyThrows
     @PostMapping("/update")
     public String updateOrder(@RequestBody UpdateOrderRequest orderRequest) {
@@ -95,6 +136,24 @@ public class OrderEndpoint {
     }
 
 
+    /**
+     * {@snippet lang = "JSON":
+     * {
+     *   "clOrdID": "clord11144c",
+     *   "origClOrdID": "clord11144",
+     *   "account": "3",
+     *   "orderID": "RRclord11155",
+     *   "transactTime": "20251104-04:22:28.109",
+     *   "side": "1",
+     *   "orderQty": "1",
+     *   "symbol": "BABA",
+     *   "securityExchange": "BA"
+     * }
+     *}
+     *
+     * @param cancelOrderRequest
+     * @return
+     */
     @SneakyThrows
     @PostMapping("/cancel")
     public String cancelOrder(@RequestBody CancelOrderRequest cancelOrderRequest) {
