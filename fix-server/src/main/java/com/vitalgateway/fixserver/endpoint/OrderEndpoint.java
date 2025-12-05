@@ -5,6 +5,7 @@ import com.vitalgateway.fixserver.fix.field.Memo;
 import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,6 +31,7 @@ import quickfix.fix44.OrderCancelReplaceRequest;
 import quickfix.fix44.OrderCancelRequest;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -40,6 +42,44 @@ public class OrderEndpoint {
 
 
     /**
+     * 批量创建价格和数量都为1的limit订单，尽量少冻结金额,避免余额不足
+     * @param account 账户id
+     * @param number 订单数量
+     */
+    @SneakyThrows
+    @GetMapping("/create-batch")
+    public void createOrderBatch(String account, int number) {
+
+        long start = System.currentTimeMillis();
+
+        SessionID sessionID = new SessionID(SessionId);
+        String prefix = UUID.randomUUID().toString();
+        for (int i = 1; i <= number; i++) {
+            NewOrderSingle request = new NewOrderSingle();
+            request.setString(OrdType.FIELD, "2"); // 限价单
+            request.setString(Side.FIELD, "1");
+            request.setString(TimeInForce.FIELD, "0");
+            request.setString(ExpireDate.FIELD, "20251118");
+            request.setString(ClOrdID.FIELD, prefix + i);
+            request.setString(OrigClOrdID.FIELD, "orig" + prefix + i);
+            request.setString(Account.FIELD, account);
+            request.setString(TransactTime.FIELD, "20251118-04:22:28.109");
+            request.setString(Price.FIELD, "1"); // 价格
+            request.setString(Memo.FIELD, "");
+            request.setString(OrderQty.FIELD, "1");
+            request.setString(Symbol.FIELD, "BABA");
+            request.setString(SecurityExchange.FIELD, "BA");
+            Session.sendToTarget(request, sessionID);
+            log.info("创建订单: clOrdID={}", prefix + i);
+        }
+        long end = System.currentTimeMillis();
+        log.info("创建订单完成,数量:{},耗时:{}ms",number,(end - start));
+    }
+
+
+
+    /**
+     * 创建订单
      * {@snippet lang = "JSON":
      * {
      *   "ordType": "1",
@@ -170,6 +210,14 @@ public class OrderEndpoint {
         request.setString(SecurityExchange.FIELD, cancelOrderRequest.getSecurityExchange());
         Session.sendToTarget(request, sessionID);
         return "ok";
+    }
+
+
+    @PostMapping("/cancel-all")
+    public String cancelAllOrders(String account) {
+        // TODO 批量取消订单
+        return "ok";
+
     }
 
 

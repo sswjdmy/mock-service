@@ -7,25 +7,29 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import quickfix.Application;
-import quickfix.FieldNotFound;
-import quickfix.IncorrectTagValue;
 import quickfix.Message;
 import quickfix.Session;
 import quickfix.SessionID;
-import quickfix.UnsupportedMessageType;
-import quickfix.field.*;
+import quickfix.field.Account;
+import quickfix.field.AvgPx;
+import quickfix.field.ClOrdID;
+import quickfix.field.CumQty;
+import quickfix.field.ExecID;
+import quickfix.field.ExecType;
+import quickfix.field.LeavesQty;
+import quickfix.field.MsgType;
+import quickfix.field.OrdStatus;
+import quickfix.field.OrderID;
+import quickfix.field.Side;
+import quickfix.field.Symbol;
 import quickfix.fix44.ExecutionReport;
-import quickfix.fix44.MessageCracker;
-import quickfix.fix44.NewOrderSingle;
-
-import java.time.LocalDateTime;
 
 
 @Slf4j
 @Primary
 @Component
 @RequiredArgsConstructor
-public class ServerApplicationAdapter  implements Application  {
+public class ServerApplicationAdapter implements Application {
 
     private final FromAppMessageProcessor fromAppMessageProcessor;
 
@@ -37,7 +41,7 @@ public class ServerApplicationAdapter  implements Application  {
     @Override
     public void fromApp(Message message, SessionID sessionId) {
         log.info("fromApp: Message={}, SessionId={}", message, sessionId);
-//        dobiz( message, sessionId);
+        dobiz(message, sessionId);
         fromAppMessageProcessor.process(message, sessionId);
     }
 
@@ -71,15 +75,34 @@ public class ServerApplicationAdapter  implements Application  {
 
         String msgType = message.getHeader().getString(MsgType.FIELD);
 
-        switch (msgType) {
-            case "D":
-                newOrderSingle(message, sessionId);
-                break;
-            default:
-                break;
+        if (msgType.equals("8")) {
+            String account = message.getString(Account.FIELD);
+            String orderId = message.getString(OrderID.FIELD);
+            char orderStatus = message.getChar(OrdStatus.FIELD);
+            log.info("收到执行报告: account={}, orderId={}, orderStatus={}", account, orderId, getOrderStatusDescription(orderStatus));
         }
     }
 
+    private String getOrderStatusDescription(char orderStatus) {
+        return switch (orderStatus) {
+            case OrdStatus.NEW -> "NEW";
+            case OrdStatus.PARTIALLY_FILLED -> "PARTIALLY_FILLED";
+            case OrdStatus.FILLED -> "FILLED";
+            case OrdStatus.DONE_FOR_DAY -> "DONE_FOR_DAY";
+            case OrdStatus.CANCELED -> "CANCELED";
+            case OrdStatus.REPLACED -> "REPLACED";
+            case OrdStatus.PENDING_CANCEL -> "PENDING_CANCEL";
+            case OrdStatus.STOPPED -> "STOPPED";
+            case OrdStatus.REJECTED -> "REJECTED";
+            case OrdStatus.SUSPENDED -> "SUSPENDED";
+            case OrdStatus.PENDING_NEW -> "PENDING_NEW";
+            case OrdStatus.CALCULATED -> "CALCULATED";
+            case OrdStatus.EXPIRED -> "EXPIRED";
+            case OrdStatus.ACCEPTED_FOR_BIDDING -> "ACCEPTED_FOR_BIDDING";
+            case OrdStatus.PENDING_REPLACE -> "PENDING_REPLACE";
+            default -> "UNKNOWN(" + orderStatus + ")";
+        };
+    }
 
     private static SessionID sessionID = new SessionID("FIX.4.4:NELOGICA->ZEROMARKETS");
 
